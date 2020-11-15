@@ -12,7 +12,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.CheckBox;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -62,6 +64,7 @@ public class SetQuizFragment extends Fragment {
     private CheckBox BaseballCheckBox;
     private CheckBox FootballCheckBox;
 
+    private Spinner spinner;
     private TextView hitNumText;
 
 
@@ -107,6 +110,7 @@ public class SetQuizFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_set_quiz, container, false);
     }
 
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -126,9 +130,27 @@ public class SetQuizFragment extends Fragment {
         BaseballCheckBox = view.findViewById(R.id.isBaseballCheckBox);        BaseballCheckBox.setOnClickListener(checkBoxClickListener);
         FootballCheckBox = view.findViewById(R.id.isFootballCheckBox);        FootballCheckBox.setOnClickListener(checkBoxClickListener);
 
+        reflectOldConfig(); //前使用時のタグ設定を反映
+
         hitNumText = view.findViewById(R.id.numberOfHit);
         hitNumText.setText(String.valueOf(hitNumberCheck(createTagList()))); //タグに合致する問題の件数を表示
 
+
+        spinner = view.findViewById(R.id.questionNumSpinner);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() { //出題する問題数を選択するためのSpinner
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                questionNumStr = (String)parent.getAdapter().getItem(position);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+
+        //クイズ開始ボタンへ ClickListener をセット
         view.findViewById(R.id.set_ok_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -138,7 +160,6 @@ public class SetQuizFragment extends Fragment {
     }
 
     private void startQuiz(){
-
         //File tagConfig = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString() + "/tagConfig.txt"); //デバッグのため外部へ
         File tagConfig = new File(getActivity().getApplicationContext().getFilesDir(),"/tagConfig.txt");
         tagConfig.delete();
@@ -192,22 +213,22 @@ public class SetQuizFragment extends Fragment {
                     bw.close();
 
                 }catch (IOException e){
-                    Log.e("Buffered Writer ERROR:",e.getMessage());
+                    Log.e("Buffered Writer ERROR:",e.toString());
                 }
                 fos.close();
 
             }catch(UnsupportedEncodingException e){
-                Log.e("Encoding ERROR:",e.getMessage());
+                Log.e("Encoding ERROR:",e.toString());
             }catch (IOException e2){
-                Log.e("fos close IO ERROR:",e2.getMessage());
+                Log.e("fos close IO ERROR:",e2.toString());
             }
 
         }catch(FileNotFoundException e){ //FileOutputStreamのチェック例外
-            Log.e("File not found ERROR:",e.getMessage());
+            Log.e("File not found ERROR:",e.toString());
             try{
                 tagConfig.createNewFile();
             }catch(IOException e2){
-                Log.e("createNewFile ERROR:",e2.getMessage());
+                Log.e("createNewFile ERROR:",e2.toString());
             }
         }
 
@@ -322,6 +343,82 @@ public class SetQuizFragment extends Fragment {
     };
 
 
+    private void reflectOldConfig(){ //前回 書き込んだ設定ファイルを参照して反映させる
+
+        File tagConfig = new File(getActivity().getApplicationContext().getFilesDir(),"/tagConfig.txt");
+        if(tagConfig.exists()) {
+            try {
+                FileInputStream fis = new FileInputStream(tagConfig);
+                InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+                BufferedReader br = new BufferedReader(isr);
+                String tmp;
+                String qNum = null;
+                while ((tmp = br.readLine()) != null) {
+                    if (tmp.contains("Num")) {
+                        qNum = tmp.substring(4);
+                        //ここでspinner.setSelection((Integer.parseInt(qNum) / 5) - 1);を実行したら何故かタグの設定が反映されなかったので後ろへ
+                    }
+
+                    if (tmp.contains("Ran")) {
+                        if ((int) (tmp.charAt(4)) == 49)
+                            RandomCheckBox.setChecked(true); //半角数字1はUTF-8で0x31 つまり10進数49
+                    }
+
+                    if (tmp.contains("Fav")) {
+                        if ((int) (tmp.charAt(4)) == 49) FavoriteCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("Hum")) {
+                        if ((int) (tmp.charAt(4)) == 49) HumanCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("Ani")) {
+                        if ((int) (tmp.charAt(4)) == 49) AnimeCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("Sin")) {
+                        if ((int) (tmp.charAt(4)) == 49) SingerCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("Ent")) {
+                        if ((int) (tmp.charAt(4)) == 49) EntertainerCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("Ido")) {
+                        if ((int) (tmp.charAt(4)) == 49) IdolCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("Ath")) {
+                        if ((int) (tmp.charAt(4)) == 49) AthleteCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("RNi")) {
+                        if ((int) (tmp.charAt(4)) == 49) RemoveNicheCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("ONi")) {
+                        if ((int) (tmp.charAt(4)) == 49) OnlyNicheCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("Bse")) {
+                        if ((int) (tmp.charAt(4)) == 49) BaseballCheckBox.setChecked(true);
+                    }
+
+                    if (tmp.contains("Fot")) {
+                        if ((int) (tmp.charAt(4)) == 49) FootballCheckBox.setChecked(true);
+                    }
+                }
+                spinner.setSelection((Integer.parseInt(qNum) / 5) - 1); //問題数をスピナーのどこが選択されているかを示すindexに直して格納
+                fis.close();
+                isr.close();
+                br.close();
+            } catch (Exception e) {
+                Log.e("reflectOldConfig ERROR", e.toString());
+            }
+        }
+    }
+
+
     private int hitNumberCheck(ArrayList<String> tagList){ //該当件数を把握するための関数
         //タグ「全て」はtagList = nullとして扱う
         int hitCount = 0;
@@ -353,7 +450,7 @@ public class SetQuizFragment extends Fragment {
             }
             fis.close(); isr.close(); br.close();
         }catch(Exception e){
-            Log.e("hitNumberCheck error",e.getMessage());
+            Log.e("hitNumberCheck error",e.toString());
             Toast.makeText(getActivity().getApplicationContext(),"hitNumberCheck() error",Toast.LENGTH_LONG).show();
         }
         return hitCount;
