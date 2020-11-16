@@ -95,11 +95,11 @@ public class QuizListFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        final ArrayList<ArrayList<String>> quizAllList = setQuizList(null);
+        ArrayList<ArrayList<String>> quizAllList = setQuizList(null);
         myAdapter = new MyAdapter(quizAllList);
 
 
-        RecyclerView recyclerView = view.findViewById(R.id.recycleView); //finalを外してみた
+        RecyclerView recyclerView = view.findViewById(R.id.recycleView);
         recyclerView.setHasFixedSize(true); //アダプターのコンテンツの大きさによってリサイクルビューの大きさが変わらないならtrueで最適化されるらしい
 
         layoutManager = new LinearLayoutManager(getContext());
@@ -201,11 +201,15 @@ public class QuizListFragment extends Fragment {
         }
 
 
+        //コンストラクタ  引数の二重ArrayList<String>にはクイズのデータが渡される
         MyAdapter(ArrayList<ArrayList<String>> data){
             dataList = data;
         }
 
 
+        //ViewHolderはリストの一列分のデータを格納されるView   RecyclerViewでは画面外へ外れたViewHolderに新たにデータを格納し直しているらしい
+        //そのため、リストの全要素分のViewHolderが生成されているわけではない。
+        //リスト一列分のレイアウトは、xmlファイルで作ったものからinflaterで生成して、ViewHolderのコンストラクタへ渡す
         @Override
         public MyAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent,int viewType){
             LayoutInflater inflater = LayoutInflater.from(parent.getContext());
@@ -216,8 +220,11 @@ public class QuizListFragment extends Fragment {
             return myViewHolder;
         }
 
+
+        //ViewHolderにデータを紐づけするメソッド。
+        //RecyclerViewが自動で呼んでいるので深くは分からない。
         @Override
-        public void onBindViewHolder(final MyViewHolder holder, int position){
+        public void onBindViewHolder(final MyViewHolder holder, int position){ //positionはデータを紐づけするViewHolderの番号
             holder.rvName.setText(dataList.get(position).get(1));
             holder.rvPseudonym.setText(dataList.get(position).get(2));
             holder.rvGroupName.setText(dataList.get(position).get(3));
@@ -238,12 +245,14 @@ public class QuizListFragment extends Fragment {
                 }
             });
 
+            //ファイル名に合致するファイルが リソースフォルダ drawable内に存在すれば、そのidを取得し、画像をImageViewへ表示できる。
             int id = getContext().getResources().
                     getIdentifier(dataList.get(position).get(4),"drawable",getContext().getPackageName());
             holder.rvImage.setImageResource(id);
             //Log.e("id",String.valueOf(id));
 
-            if(id == 0){ //画像がリソースフォルダにない場合はアプリの外部ファイルにないかを参照する（ユーザーが問題を作成するときに追加することを想定していた）
+            //画像がリソースフォルダにない場合はアプリの外部ファイルにないかを参照する（ユーザーが問題を作成するときに追加することを想定していた）
+            if(id == 0){
                 String path = getContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES) + "/" +dataList.get(position).get(4) + ".jpg";
                 //Log.e("path",path);
                 Bitmap bmp = BitmapFactory.decodeFile(path);
@@ -258,10 +267,12 @@ public class QuizListFragment extends Fragment {
             //async.execute(dataList.get(position).get(4));
         }
 
+
         @Override
         public int getItemCount(){
             return dataList.size();
-        }
+        } //リストの全要素数を返すようにする（RecyclerViewが処理に利用する）
+
 
 
         private void rvFavoriteButtonClick(int id, View v) { //お気に入り登録ボタンの動作
@@ -317,11 +328,6 @@ public class QuizListFragment extends Fragment {
                 Toast.makeText(getContext(), "favButton ERROR", Toast.LENGTH_LONG);
             }
         }
-
-
     } //ここまでclass MyAdapter
+
 }
-
-
-
-

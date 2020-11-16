@@ -80,7 +80,7 @@
                     android:layout_height="wrap_content"
                     android:textSize="12dp"
                     android:text="前の問題へ"
-                    android:onClick="beforeQuizClick" />
+                    android:onClick="prevButtonClick" />
                 <ImageButton
                     android:id="@+id/favorite"
                     android:layout_width="64dp"
@@ -94,7 +94,7 @@
                     android:layout_height="wrap_content"
                     android:textSize="12dp"
                     android:text="次の問題へ"
-                    android:onClick="nextQuizClick"/>
+                    android:onClick="nextButtonClick"/>
             </LinearLayout>
 
             <TextView
@@ -109,7 +109,7 @@
                 android:layout_height="36dp"
                 android:src="@drawable/a_reload"
                 android:layout_marginRight="10dp"
-                android:onClick="imageReloadButtonClick"
+                android:onClick="imageReplaceButtonClick"
                 android:layout_gravity="right"/>
 
         </LinearLayout>

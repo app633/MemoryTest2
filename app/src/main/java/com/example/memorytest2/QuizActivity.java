@@ -35,14 +35,18 @@ public class QuizActivity extends AppCompatActivity {
 
     private int nowQuizNum = 0;
     private int requiredQuestionNum = 0;
-    private ArrayList<ArrayList<String>> quizList = new ArrayList<>();
     private int randomNum;
+
+    private ArrayList<ArrayList<String>> quizList = new ArrayList<>(); //タグに合致した問題を格納する二重ArrayList
 
     private Button answerButton;
     private Button nextQuizButton;
+    private ImageButton favoriteButton;
     private TextView pseudonymText;
     private TextView memberText;
     private TextView nowNumberText;
+    private ImageView questionImageView;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,11 +58,16 @@ public class QuizActivity extends AppCompatActivity {
         pseudonymText = findViewById(R.id.pseudonymText);
         memberText = findViewById(R.id.memberText);
         nowNumberText = findViewById(R.id.nowNumberText);
+        favoriteButton = findViewById(R.id.favorite);
+        questionImageView = findViewById(R.id.questionImage);
 
+        //setQuizFragment で設定したタグ設定をこのクラスで読み込むために以下で tagConfig.txt から設定を読み込み直していたが、
+        //遷移時にBundleを用いてタグのリストを渡してしまえばよいので無駄。要改善
         File tagConfig = new File(getApplicationContext().getFilesDir(),"/tagConfig.txt"); //タグ設定ファイル
         ArrayList<String> tagList = new ArrayList<>();
-        boolean isRandomFlag = false;
-        boolean isRemoveNicheFlag = false;
+
+        boolean isRandomFlag = false;       // タグ選択がなく、すべての問題から出題されるときtrueになるフラグ
+        boolean isRemoveNicheFlag = false;  //「ニッチな問題を除く」を選択したかのフラグ
 
         try{
             FileInputStream fis = new FileInputStream(tagConfig);
@@ -126,8 +135,10 @@ public class QuizActivity extends AppCompatActivity {
             Log.e("tagConfig read ERROR",e.toString());
             Toast.makeText(getApplicationContext(),"tagConfig read ERROR",Toast.LENGTH_LONG).show();
         }
+        //ここまでタグの読み込み（読み込んだタグはtagListに格納されている）
 
 
+        //ここから タグに合致する問題を 問題全体が記述されている input.csv から抜き出し、quizListに格納する
         File inputFile = new File(getApplicationContext().getFilesDir(),"/input.csv"); //内部ストレージ
         //Log.e("path",MyApplication.getMyAppContext().getFilesDir().getPath());
         //File inputFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString() + "/input.csv");
@@ -139,29 +150,30 @@ public class QuizActivity extends AppCompatActivity {
             String tmp;
             boolean tagFlag;
             br.readLine(); br.readLine(); //2行読み飛ばす
+
+            //input.csvのすべての行について、タグ一致判定を行い 一致した問題は要素ごとに切り離して quizListに格納する
             while((tmp = br.readLine()) != null){
                 tagFlag = true;
-                if (!isRandomFlag) {
+                if (!isRandomFlag) { //isRandomFlagがtrue（選択タグなし）であればタグ一致判定は行わない
                     if(isRemoveNicheFlag) {
                         if(tmp.contains("ニッチ")) tagFlag = false;
                     }
                     for (String str : tagList) {
-
-                        tagFlag = tagFlag && (tmp.contains(str)); //該当タグが全て含まれているかどうかを論理積を全てで取ることで判定する
+                        tagFlag = tagFlag && (tmp.contains(str));
                     }
                 }
 
+                //タグ判定で一致した問題を以下で要素ごとに切り分け、二重ArrayListに格納する
                 if(tagFlag) {
                     ArrayList<String> tmpArray = new ArrayList<>();
                     int startNum = 0;
                     int endNum;
-                    while ((endNum = tmp.indexOf(",", startNum)) != -1) { //","が見つからなくなるまで
-                        String separatedStr = tmp.substring(startNum, endNum);
-                        tmpArray.add(separatedStr);
+                    while ((endNum = tmp.indexOf(",", startNum)) != -1) { //","が見つからなくなるまで繰り返す
+                        tmpArray.add(tmp.substring(startNum, endNum)); //要素ごとにtmpArrayに格納
                         startNum = endNum + 1;
                     }
-                    tmpArray.add(tmp.substring(startNum));
-                    quizList.add(tmpArray);
+                    tmpArray.add(tmp.substring(startNum)); //最後の要素格納
+                    quizList.add(tmpArray); //問題一行分を要素ごとに分けて格納したtmpArrayをquizListに格納
                     questionNum++;
                 }
             }
@@ -180,13 +192,14 @@ public class QuizActivity extends AppCompatActivity {
             inAlert.setCancelable(false);
             inAlert.show();
         }
+        //ここまで タグに合致した問題をquizListに格納する処理
 
 
-        if(questionNum == 0 || quizList.size() == 0){
+        if(questionNum == 0 || quizList.size() == 0){ //クイズスタートボタンを押した段階でこの判定を行っていれば、この処理は不要
             Toast.makeText(getApplicationContext(),"該当問題が存在しません",Toast.LENGTH_LONG).show();
         }else{
-            Collections.shuffle(quizList);
-            if(questionNum < requiredQuestionNum) requiredQuestionNum = questionNum;
+            Collections.shuffle(quizList); //quizListに格納された問題の順番をシャッフル
+            if(questionNum < requiredQuestionNum) requiredQuestionNum = questionNum; //ユーザーが選択した問題数より該当問題が少なければ、その数に合わせる
             //TextView debugText2 = findViewById(R.id.debugText2);
             //debugText2.setText("questionNum:" + questionNum);
             showQuiz();
@@ -197,7 +210,7 @@ public class QuizActivity extends AppCompatActivity {
     } //onCreate関数
 
 
-    public void nextQuizClick(View view){ //次の問題へボタンが押されたときの動作
+    public void nextButtonClick(View view){ //次の問題へボタンが押されたときの動作
         if(nowQuizNum != (requiredQuestionNum - 1)){
             nowQuizNum++;
 
@@ -231,16 +244,17 @@ public class QuizActivity extends AppCompatActivity {
                 public void run() {
                     // 遅らせて実行したい処理
                     Intent intent = new Intent(getApplicationContext(),MainActivity.class);
-                    startActivity(intent);
+                    startActivity(intent); //最初の画面(startActivity)へ遷移する
                     overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out); //画面遷移にアニメーションを
                 }
             }, 800); // 遅らせたい時間(ミリ秒)
-
-
         }
     }
 
-    public void beforeQuizClick(View view){ //前の問題へボタンが押されたときの動作
+
+    //前の問題へボタンが押されたときの動作
+    //1問題につき2つ画像が用意されているが、その問題が入れ替わってしまうことがある問題を放置してしまっている
+    public void prevButtonClick(View view){
         if(nowQuizNum != 0){
             nowQuizNum--;
 
@@ -251,25 +265,25 @@ public class QuizActivity extends AppCompatActivity {
             nowNumberText.setText((nowQuizNum + 1) + "問目");
 
             showQuiz();
+            //showQuiz()では、表示する画像を2枚の内からランダムに決めているので、
+            //前に戻るボタンを押すと先ほど表示されていた画像と異なる方の画像が表示される可能性がある
         }
     }
 
 
-    public void showQuiz(){
+    private void showQuiz(){
         //お気に入りの描画
-        ImageButton favoriteButton = findViewById(R.id.favorite);
         if(quizList.get(nowQuizNum).get(7).contains("@@")) favoriteButton.setBackgroundResource(R.drawable.a_favorite);
         else favoriteButton.setBackgroundResource(R.drawable.a_not_favorite);
 
         //問題画像を表示
         String link;
         Random random = new Random();
-        randomNum = random.nextInt(2); //0または1になる（画像は2パターン用意）
+        randomNum = random.nextInt(2); //0または1になる（画像は2パターン用意あり、どちらが表示されるかはランダム）
         if(randomNum == 0){
             link = quizList.get(nowQuizNum).get(4);
         }else link = quizList.get(nowQuizNum).get(5);
 
-        ImageView questionImageView = findViewById(R.id.questionImage);
         int id = getResources().getIdentifier(link,"drawable",getPackageName());
         questionImageView.setImageResource(id);
         //最初drawableの下に他のフォルダを作って問題の画像を入れようとしたけど、drawableの下のフォルダは認識されないらしい
@@ -291,18 +305,21 @@ public class QuizActivity extends AppCompatActivity {
 //        async.execute(link);
     }
 
-    public void answerButtonClick(View view){ //答えを表示ボタンの動作
 
+    public void answerButtonClick(View view){ //答えを表示ボタンの動作
         answerButton.setText(quizList.get(nowQuizNum).get(1));
         pseudonymText.setText(quizList.get(nowQuizNum).get(2));
         memberText.setText(quizList.get(nowQuizNum).get(3));
     }
 
-    public void favoriteButtonClick(View view){ //お気に入り登録ボタンの動作
-        ImageButton favoriteButton = findViewById(R.id.favorite);
 
+    public void favoriteButtonClick(View view){ //お気に入り登録ボタンの動作
+
+        //ボタンが押されたときの問題が、csvファイル上で何番目の問題かを示すid　（+1されているのは下の変数countの初期値が0のため）
         int id = Integer.valueOf(quizList.get(nowQuizNum).get(0)) + 1;
 
+        //input.csvにおいて、該当問題のお気に入り登録タグ部分を書き換える。
+        //一部を書き換えることは不可能なので、結局全て出力し直している
         try{
             //File outFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString() + "/input.csv");
             File outFile = new File(getApplicationContext().getFilesDir(),"/input.csv"); //内部ストレージから読み込む
@@ -312,24 +329,16 @@ public class QuizActivity extends AppCompatActivity {
 
             File tmpExFile = new File(getApplicationContext().getFilesDir(),"/tmpExFile.csv"); //書き写すための一時ファイル
 
-            //File toFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/toFile.csv");
-            //toFile.delete();
-            //FileOutputStream fos2 = new FileOutputStream(toFile);
-            //OutputStreamWriter osw2 = new OutputStreamWriter(fos2,"SHIFT-JIS");
-            //BufferedWriter bw2 = new BufferedWriter(osw2);
-
             String tmp;
             FileOutputStream fos = new FileOutputStream(tmpExFile,true); //書き移すためのFileOutputStream
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos,"SHIFT-JIS"));
             int count = 0;
             //ボタンのクリックを受けてファイルのお気に入りの部分を書き換える
             while((tmp = br.readLine()) != null) {
-                if(count != id) {
+                if(count != id) { //該当問題の行までは 元ファイルをそのまま書き写す
                     try {
                         bw.write(tmp + "\n");
                         bw.flush();
-                        //bw2.write(tmp + "\n");
-                        //bw2.flush();
                     } catch (Exception e) {
                         Log.e("favButton writeERROR", e.toString());
                         Toast.makeText(getApplicationContext(), "favButton ERROR", Toast.LENGTH_LONG).show();
@@ -339,16 +348,14 @@ public class QuizActivity extends AppCompatActivity {
                         favoriteButton.setBackgroundResource(R.drawable.a_not_favorite);
                         bw.write(tmp.substring(0,tmp.length() - 3) + "\n");
                         bw.flush();
-                        //bw2.write(tmp.substring(0,tmp.length() - 3) + "\n");
-                        //bw2.flush();
 
                         //お気に入りボタン表示を反映させるためだけに、もう一度isFavoriteFlagを読み込み直すのは馬鹿らしいのでquizListを操作
+                        quizList.get(nowQuizNum).remove(7); //quizListから お気に入りタグ"@@"を削除
                     }else{
                         favoriteButton.setBackgroundResource(R.drawable.a_favorite);
                         bw.write(tmp + "、@@\n");
                         bw.flush();
-                        //bw2.write(tmp + "、@@\n");
-                        //bw2.flush();
+                        quizList.get(nowQuizNum).add(7,"@@"); //お気に入りタグを追加
                     }
                 }
                 count++;
@@ -363,18 +370,14 @@ public class QuizActivity extends AppCompatActivity {
             outFile.delete(); //元のinputファイルを消して、お気に入り設定を改めたtmpExFileを新しくinputファイルにする
             tmpExFile.renameTo(new File(getApplicationContext().getFilesDir(),"/input.csv"));
 
-
         }catch(Exception e){
             Log.e("favButton ERROR",e.toString());
             Toast.makeText(getApplicationContext(),"favButton ERROR",Toast.LENGTH_LONG).show();
         }
-
     } //ここまでお気に入り登録ボタンの動作
 
 
-    public void imageReloadButtonClick(View view){ //画像切り替えボタンの動作
-        ImageView questionImageView = findViewById(R.id.questionImage);
-
+    public void imageReplaceButtonClick(View view){ //画像切り替えボタンの動作
         String link;
         if(randomNum == 0) { //画像の参照を反転させる
             link = quizList.get(nowQuizNum).get(5);
@@ -383,6 +386,7 @@ public class QuizActivity extends AppCompatActivity {
             link = quizList.get(nowQuizNum).get(4);
             randomNum = 0;
         }
+
         int id = getResources().getIdentifier(link,"drawable",getPackageName());
         questionImageView.setImageResource(id);
         //最初drawableの下に他のフォルダを作って問題の画像を入れようとしたけど、drawableの下のフォルダは認識されないらしい

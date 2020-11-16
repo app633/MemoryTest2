@@ -116,7 +116,7 @@ public class SetQuizFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         //ActivityからFragmentに変えた影響でレイアウトxmlの onClick属性 が使えなくなり、大量のonClickListenerの記述が必要になった…。
-        //クイズのタグセッティングからはActivityでもよかったかもしれない。Fragmentが使いたかったのはViewPagerのためだけだし。
+        //クイズのタグセッティングはActivityでもよかったかもしれない。Fragmentが使いたかったのはViewPagerのためだけだし。
         RandomCheckBox = view.findViewById(R.id.isRandomCheckBox);            RandomCheckBox.setOnClickListener(checkBoxClickListener);
         FavoriteCheckBox = view.findViewById(R.id.isFavoriteCheckBox);        FavoriteCheckBox.setOnClickListener(checkBoxClickListener);
         HumanCheckBox = view.findViewById(R.id.isHumanCheckBox);              HumanCheckBox.setOnClickListener(checkBoxClickListener);
@@ -160,6 +160,10 @@ public class SetQuizFragment extends Fragment {
     }
 
     private void startQuiz(){
+        //「クイズ開始」ボタンが押されたときの動作
+        // 「前回のタグ設定を反映する」機能の為に config.txt というファイルにタグ設定を記録している。
+        // それが完了したら QuizActivity へ遷移する。
+
         //File tagConfig = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString() + "/tagConfig.txt"); //デバッグのため外部へ
         File tagConfig = new File(getContext().getFilesDir(),"/tagConfig.txt");
         tagConfig.delete();
@@ -231,9 +235,8 @@ public class SetQuizFragment extends Fragment {
                 Log.e("createNewFile ERROR:",e2.toString());
             }
         }
-
         Intent intent = new Intent(getContext(),QuizActivity.class);
-        startActivity(intent);
+        startActivity(intent); //QuizActivityへ遷移
     }
 
 
@@ -344,7 +347,6 @@ public class SetQuizFragment extends Fragment {
 
 
     private void reflectOldConfig(){ //前回 書き込んだ設定ファイルを参照して反映させる
-
         File tagConfig = new File(getContext().getFilesDir(),"/tagConfig.txt");
         if(tagConfig.exists()) {
             try {
@@ -430,21 +432,23 @@ public class SetQuizFragment extends Fragment {
 
             String tmp;
             boolean tagFlag;
-            boolean isRemoveNicheFlag = false;
-            if(tagList != null) {
-                isRemoveNicheFlag = tagList.contains("ニッチな問題を除く");
-                if(isRemoveNicheFlag) tagList.remove("ニッチな問題を除く");
-            }
+            boolean isRemoveNicheFlag = tagList.contains("ニッチな問題を除く");
+            if(isRemoveNicheFlag) tagList.remove("ニッチな問題を除く");
 
+
+            //読み込むファイルはinput.csv（内部ストレージにコピーしたクイズ問題のリスト）で、
+            //それら一問ずつ（一行に相当）について、選択したタグ条件を満たすかどうかを判定する。
+            //br.readLine()で一行ずつファイルを読み込む ファイルの最後まで行くとnullを返すので止まる。
+            //最終的に tagFrag がtrueならその問題は該当問題としてカウントされる。
             while((tmp = br.readLine()) != null){
                 tagFlag = true;
-                if(tagList != null){
-                    if(isRemoveNicheFlag){
-                        if(tmp.contains("ニッチ")) tagFlag = false;
-                    }
-                    for(String str: tagList){
-                        tagFlag = tagFlag && (tmp.contains(str));
-                    }
+                if(isRemoveNicheFlag){
+                    if(tmp.contains("ニッチ")) tagFlag = false;
+                }
+                for(String str: tagList){
+                    tagFlag = tagFlag && (tmp.contains(str));
+                    //一度でもtmp.contains(str)が falseになれば（その問題の行に選択したタグが含まれていないことがあれば）、
+                    //tagFragは falseとなる
                 }
                 if(tagFlag) hitCount++;
             }
@@ -454,6 +458,12 @@ public class SetQuizFragment extends Fragment {
             Toast.makeText(getContext(),"hitNumberCheck() error",Toast.LENGTH_LONG).show();
         }
         return hitCount;
+
+        //「ニッチな問題を除く」という条件のみ別処理になっているのは、他のタグと違って
+        // 「ニッチな問題を除く」という名前でニッチではない問題をタグ登録していないからである
+        //（一部の問題がニッチなだけであって、それ以外に全て「ニッチではない」というタグをつけるのは憚られた。
+        // また、「ニッチではない」という名前でタグ登録すると、その行を「ニッチ」が含まれるかで判定すると trueになり
+        // 面倒だった）。
     }
 
 
