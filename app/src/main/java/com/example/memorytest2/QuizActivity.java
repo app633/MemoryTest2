@@ -76,7 +76,7 @@ public class QuizActivity extends AppCompatActivity {
                 }
 
                 if(tmp.contains("Fav")) {
-                    if((int)(tmp.charAt(4)) == 49) tagList.add("@@");
+                    if((int)(tmp.charAt(4)) == 49) tagList.add("@@"); //お気に入りタグは "@@" で登録している
                 }
 
                 if(tmp.contains("Hum")) {

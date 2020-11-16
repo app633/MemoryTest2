@@ -161,7 +161,7 @@ public class SetQuizFragment extends Fragment {
 
     private void startQuiz(){
         //File tagConfig = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString() + "/tagConfig.txt"); //デバッグのため外部へ
-        File tagConfig = new File(getActivity().getApplicationContext().getFilesDir(),"/tagConfig.txt");
+        File tagConfig = new File(getContext().getFilesDir(),"/tagConfig.txt");
         tagConfig.delete();
         try{ //catch(Exception e)で大雑把にまとめて捕捉したら、こんなにtry-catchを書く必要はない でも一応
             FileOutputStream fos = new FileOutputStream(tagConfig);
@@ -232,7 +232,7 @@ public class SetQuizFragment extends Fragment {
             }
         }
 
-        Intent intent = new Intent(getActivity().getApplicationContext(),QuizActivity.class);
+        Intent intent = new Intent(getContext(),QuizActivity.class);
         startActivity(intent);
     }
 
@@ -345,7 +345,7 @@ public class SetQuizFragment extends Fragment {
 
     private void reflectOldConfig(){ //前回 書き込んだ設定ファイルを参照して反映させる
 
-        File tagConfig = new File(getActivity().getApplicationContext().getFilesDir(),"/tagConfig.txt");
+        File tagConfig = new File(getContext().getFilesDir(),"/tagConfig.txt");
         if(tagConfig.exists()) {
             try {
                 FileInputStream fis = new FileInputStream(tagConfig);
@@ -423,7 +423,7 @@ public class SetQuizFragment extends Fragment {
         //タグ「全て」はtagList = nullとして扱う
         int hitCount = 0;
         try{
-            File inputFile = new File(getActivity().getApplicationContext().getFilesDir(),"/input.csv");
+            File inputFile = new File(getContext().getFilesDir(),"/input.csv");
             FileInputStream fis = new FileInputStream(inputFile);
             InputStreamReader isr = new InputStreamReader(fis,"SHIFT-JIS");
             BufferedReader br = new BufferedReader(isr);
@@ -451,7 +451,7 @@ public class SetQuizFragment extends Fragment {
             fis.close(); isr.close(); br.close();
         }catch(Exception e){
             Log.e("hitNumberCheck error",e.toString());
-            Toast.makeText(getActivity().getApplicationContext(),"hitNumberCheck() error",Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(),"hitNumberCheck() error",Toast.LENGTH_LONG).show();
         }
         return hitCount;
     }
